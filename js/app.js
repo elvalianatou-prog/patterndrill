@@ -84,13 +84,13 @@ const App = (() => {
     if (generate) generateChart();
   }
 
-  function selectDifficulty(diff, generate = false) {
+  function selectDifficulty(diff) {
     state.difficulty = diff;
     document.querySelectorAll('.diff-chip').forEach(c => {
       c.classList.toggle('selected', parseInt(c.dataset.diff) === diff);
     });
     Storage.savePrefs({ difficulty: diff });
-    if (generate && state.patternKey) generateChart();
+    if (state.patternKey) generateChart();
   }
 
   // ─── Chart generation ─────────────────────────────────────────────────────
