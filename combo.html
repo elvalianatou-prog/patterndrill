@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PatternDrill — Combo Drill</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    .combo-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 8px;
+      margin-bottom: 1rem;
+    }
+    .combo-chip {
+      padding: 10px 12px;
+      font-size: 11px;
+      font-family: var(--font-mono);
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      color: var(--text-2);
+      text-align: left;
+      transition: all var(--t);
+      line-height: 1.4;
+      cursor: pointer;
+    }
+    .combo-chip:hover { background: var(--bg-3); border-color: var(--border-2); color: var(--text-1); }
+    .combo-chip.selected { background: var(--amber-glow); border-color: var(--amber-dim); color: var(--amber); }
+    .combo-chip .chip-diff {
+      font-size: 10px;
+      color: var(--text-3);
+      margin-top: 3px;
+    }
+    .combo-chip.selected .chip-diff { color: var(--amber-dim); }
+
+    .zone-tools {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 0.75rem;
+      padding: 10px 12px;
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+    }
+    .zone-tool-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      font-size: 11px;
+      font-family: var(--font-mono);
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-2);
+      background: var(--bg-1);
+      color: var(--text-2);
+      cursor: pointer;
+      transition: all var(--t);
+    }
+    .zone-tool-btn:hover { color: var(--text-1); }
+    .zone-tool-btn.active { color: var(--text-1); border-width: 2px; }
+    .zone-tool-btn .color-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .zone-tool-label { font-size: 10px; color: var(--text-3); margin-right: 4px; align-self: center; }
+
+    .combo-desc {
+      font-size: 12px;
+      color: var(--text-2);
+      margin-bottom: 0.75rem;
+      line-height: 1.6;
+      padding: 8px 12px;
+      background: var(--bg-2);
+      border-left: 2px solid var(--amber-dim);
+      border-radius: 0 var(--radius-md) var(--radius-md) 0;
+      display: none;
+    }
+    .combo-desc.visible { display: block; }
+
+    .score-breakdown {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 1rem;
+      display: none;
+    }
+    .score-breakdown.visible { display: flex; }
+    .breakdown-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border);
+      font-size: 12px;
+    }
+    .breakdown-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .breakdown-label { flex: 1; }
+    .breakdown-result { font-weight: 500; }
+  </style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-logo">Pattern<span>Drill</span></div>
+  <a class="nav-link" href="index.html">Drill</a>
+  <a class="nav-link active" href="combo.html">Combo</a>
+  <a class="nav-link" href="library.html">Library</a>
+  <a class="nav-link" href="stats.html">Stats</a>
+</nav>
+
+<main class="page">
+
+  <!-- Combo selector -->
+  <div class="label">select combination</div>
+  <div class="combo-grid" id="combo-grid"></div>
+
+  <!-- Description -->
+  <div class="combo-desc" id="combo-desc"></div>
+
+  <!-- Difficulty -->
+  <div class="diff-row">
+    <span class="diff-label">difficulty</span>
+    <button class="diff-chip selected" data-diff="1">1 — clean</button>
+    <button class="diff-chip" data-diff="2">2 — realistic</button>
+    <button class="diff-chip" data-diff="3">3 — live</button>
+  </div>
+
+  <!-- Chart -->
+  <div class="chart-wrap" id="chart-wrap">
+    <canvas id="chart-canvas"></canvas>
+    <canvas id="overlay-canvas"></canvas>
+    <div class="chart-empty" id="chart-empty">
+      <div class="chart-empty-icon">▦</div>
+      <div class="chart-empty-text">select a combination above to begin</div>
+    </div>
+    <div class="chart-loader" id="chart-loader">
+      <div class="loader-text">GENERATING</div>
+      <div class="loader-bar"></div>
+    </div>
+  </div>
+
+  <!-- Hint -->
+  <div class="hint-bar">
+    <span class="hint-label">task</span>
+    <span id="hint-text" style="color:var(--text-2);">—</span>
+  </div>
+
+  <!-- Zone tools (one per concept) -->
+  <div class="zone-tools" id="zone-tools" style="display:none;">
+    <span class="zone-tool-label">mark →</span>
+    <div id="tool-btns"></div>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls">
+    <button class="btn" id="btn-reveal" onclick="ComboApp.reveal()" disabled>reveal answer</button>
+    <button class="btn" id="btn-clear"  onclick="ComboApp.clearAll()"  disabled>clear all</button>
+    <div class="controls-right">
+      <button class="btn btn-primary" id="btn-next" onclick="ComboApp.generate()" disabled>next chart ↗</button>
+    </div>
+  </div>
+
+  <!-- Per-zone score breakdown -->
+  <div class="score-breakdown" id="score-breakdown"></div>
+
+  <!-- Overall feedback -->
+  <div class="feedback" id="feedback"></div>
+
+  <!-- Score row -->
+  <div class="score-row">
+    <div class="score-chip" id="sc-correct">  correct  <span class="val">0</span></div>
+    <div class="score-chip" id="sc-attempts"> attempts <span class="val">0</span></div>
+    <div class="score-chip" id="sc-accuracy"> accuracy <span class="val">—</span></div>
+  </div>
+
+</main>
+
+<script src="js/patterns.js"></script>
+<script src="js/combos.js"></script>
+<script src="js/chart.js"></script>
+<script src="js/scoring.js"></script>
+<script src="js/storage.js"></script>
+<script>
+const ComboApp = (() => {
+  let state = {
+    comboKey:    null,
+    difficulty:  1,
+    zones:       [],       // [{ key, label, zone, colorIdx, hint }]
+    userMarks:   {},       // { colorIdx: { startIdx, endIdx } }
+    activeColor: 0,        // which zone tool is selected
+    markStart:   null,
+    revealed:    false,
+    scores:      { correct: 0, attempts: 0 },
+  };
+
+  let chart;
+
+  function init() {
+    chart = new CandleChart('chart-canvas', 'overlay-canvas');
+
+    // Build combo chips
+    const grid = document.getElementById('combo-grid');
+    getComboList().forEach(({ key, label, difficulty }) => {
+      const btn = document.createElement('button');
+      btn.className = 'combo-chip';
+      btn.dataset.key = key;
+      btn.innerHTML = `${label}<div class="chip-diff">${difficulty}</div>`;
+      btn.addEventListener('click', () => selectCombo(key));
+      grid.appendChild(btn);
+    });
+
+    // Difficulty chips
+    document.querySelectorAll('.diff-chip').forEach(c => {
+      c.addEventListener('click', () => {
+        state.difficulty = parseInt(c.dataset.diff);
+        document.querySelectorAll('.diff-chip').forEach(x => x.classList.remove('selected'));
+        c.classList.add('selected');
+      });
+    });
+
+    // Overlay mouse events
+    const overlay = document.getElementById('overlay-canvas');
+    overlay.addEventListener('mousedown',  e => onDown(e.clientX));
+    overlay.addEventListener('mousemove',  e => onMove(e.clientX));
+    overlay.addEventListener('mouseup',    e => onUp(e.clientX));
+    overlay.addEventListener('mouseleave', () => { state.markStart = null; redrawOverlay(); });
+    overlay.addEventListener('touchstart',  e => onDown(e.touches[0].clientX), { passive: true });
+    overlay.addEventListener('touchmove',   e => { e.preventDefault(); onMove(e.touches[0].clientX); }, { passive: false });
+    overlay.addEventListener('touchend',    e => onUp(e.changedTouches[0].clientX));
+  }
+
+  function selectCombo(key) {
+    state.comboKey = key;
+    document.querySelectorAll('.combo-chip').forEach(c => c.classList.toggle('selected', c.dataset.key === key));
+    const def = getComboList().find(c => c.key === key);
+    generate();
+  }
+
+  async function generate() {
+    if (!state.comboKey) return;
+    state.userMarks = {};
+    state.markStart = null;
+    state.revealed  = false;
+
+    document.getElementById('feedback').className = 'feedback';
+    document.getElementById('score-breakdown').className = 'score-breakdown';
+    document.getElementById('chart-loader').classList.add('visible');
+    document.getElementById('chart-empty').style.display = 'none';
+    setEnabled(false);
+
+    await new Promise(r => setTimeout(r, 60));
+
+    try {
+      const result = generateCombo(state.comboKey, state.difficulty);
+      state.zones = result.zones;
+
+      // Show description
+      const desc = document.getElementById('combo-desc');
+      desc.textContent = result.description;
+      desc.className = 'combo-desc visible';
+
+      // Hint
+      const zoneNames = result.zones.map(z => z.label).join(', ');
+      document.getElementById('hint-text').textContent =
+        `Mark all zones: ${zoneNames}. Each has a different color.`;
+
+      // Build zone tool buttons
+      buildToolButtons(result.zones);
+      document.getElementById('zone-tools').style.display = 'flex';
+
+      chart.load(result.candles);
+    } catch(e) {
+      console.error(e);
+    }
+
+    document.getElementById('chart-loader').classList.remove('visible');
+    setEnabled(true);
+    // Set first tool active
+    if (state.zones.length) setActiveTool(0);
+  }
+
+  function buildToolButtons(zones) {
+    const wrap = document.getElementById('tool-btns');
+    wrap.innerHTML = '';
+    wrap.style.display = 'flex';
+    wrap.style.gap = '8px';
+    wrap.style.flexWrap = 'wrap';
+
+    zones.forEach((z, i) => {
+      const col = COMBO_COLORS[i];
+      const btn = document.createElement('button');
+      btn.className = 'zone-tool-btn';
+      btn.id = `tool-${i}`;
+      btn.innerHTML = `<span class="color-dot" style="background:${col.stroke}"></span>${z.label}`;
+      btn.addEventListener('click', () => setActiveTool(i));
+      wrap.appendChild(btn);
+    });
+  }
+
+  function setActiveTool(idx) {
+    state.activeColor = idx;
+    document.querySelectorAll('.zone-tool-btn').forEach((b, i) => {
+      const col = COMBO_COLORS[i];
+      b.classList.toggle('active', i === idx);
+      if (i === idx) {
+        b.style.borderColor = col.stroke;
+        b.style.color = col.light;
+      } else {
+        b.style.borderColor = '';
+        b.style.color = '';
+      }
+    });
+    document.getElementById('overlay-canvas').style.cursor = 'col-resize';
+  }
+
+  function onDown(clientX) {
+    if (!state.zones.length || state.revealed) return;
+    state.markStart = chart.xToIndex(clientX);
+  }
+
+  function onMove(clientX) {
+    if (state.markStart === null) return;
+    const cur = chart.xToIndex(clientX);
+    redrawOverlay();
+    const col = COMBO_COLORS[state.activeColor];
+    chart.drawColorZone(
+      { startIdx: Math.min(state.markStart, cur), endIdx: Math.max(state.markStart, cur) },
+      col, state.zones[state.activeColor]?.label.toUpperCase() || 'MARK'
+    );
+  }
+
+  function onUp(clientX) {
+    if (state.markStart === null) return;
+    const cur = chart.xToIndex(clientX);
+    state.userMarks[state.activeColor] = {
+      startIdx: Math.min(state.markStart, cur),
+      endIdx:   Math.max(state.markStart, cur),
+    };
+    state.markStart = null;
+    redrawOverlay();
+
+    // Auto-advance to next unmarked tool
+    const nextUnmarked = state.zones.findIndex((z, i) => i !== state.activeColor && !state.userMarks[i]);
+    if (nextUnmarked >= 0) setActiveTool(nextUnmarked);
+  }
+
+  function redrawOverlay() {
+    chart.clearOverlay();
+    // Draw all placed marks
+    Object.entries(state.userMarks).forEach(([idx, mark]) => {
+      const col = COMBO_COLORS[parseInt(idx)];
+      const label = state.zones[parseInt(idx)]?.label.toUpperCase() || 'MARK';
+      chart.drawColorZone(mark, col, label);
+    });
+    // Draw answer zones if revealed
+    if (state.revealed) {
+      state.zones.forEach((z, i) => {
+        const col = COMBO_COLORS[i];
+        chart.drawZone(z.zone, { fill: col.fill, stroke: col.stroke, label: `✓ ${z.label.toUpperCase()}` });
+      });
+    }
+  }
+
+  function reveal() {
+    if (!state.zones.length) return;
+    state.revealed = true;
+    state.scores.attempts++;
+
+    // Score each zone
+    const breakdown = document.getElementById('score-breakdown');
+    breakdown.innerHTML = '';
+    breakdown.className = 'score-breakdown visible';
+
+    let allCorrect = true;
+    let anyCorrect = false;
+
+    state.zones.forEach((z, i) => {
+      const userMark = state.userMarks[i] ?? null;
+      const result   = scoreAttempt(userMark, z.zone, z.label);
+      const col      = COMBO_COLORS[i];
+      if (!result.correct) allCorrect = false;
+      if (result.correct)  anyCorrect = true;
+
+      const row = document.createElement('div');
+      row.className = 'breakdown-row';
+      row.style.borderColor = result.correct ? 'rgba(29,158,117,0.4)' : 'rgba(216,90,48,0.3)';
+      row.style.background  = result.correct ? 'var(--green-dim)' : 'var(--red-dim)';
+      row.innerHTML = `
+        <span class="breakdown-dot" style="background:${col.stroke}"></span>
+        <span class="breakdown-label" style="color:var(--text-2)">${z.label}</span>
+        <span class="breakdown-result" style="color:${result.correct ? 'var(--green)' : 'var(--red)'}">
+          ${result.correct ? '✓' : '✗'} ${Math.round(result.iou * 100)}% overlap
+        </span>
+      `;
+      breakdown.appendChild(row);
+    });
+
+    if (allCorrect) state.scores.correct++;
+
+    // Overall feedback
+    const fb = document.getElementById('feedback');
+    fb.className = `feedback visible ${allCorrect ? 'grade-excellent' : anyCorrect ? 'grade-partial' : 'grade-wrong'}`;
+    fb.textContent = allCorrect
+      ? `All zones correct. You can read this setup end to end.`
+      : anyCorrect
+      ? `Partial — some zones correct. Review the highlighted zones and study the ones you missed.`
+      : `Missed. Review all the highlighted zones carefully before trying again.`;
+
+    redrawOverlay();
+    updateScores();
+  }
+
+  function clearAll() {
+    state.userMarks = {};
+    state.markStart = null;
+    state.revealed  = false;
+    chart.clearOverlay();
+    document.getElementById('feedback').className = 'feedback';
+    document.getElementById('score-breakdown').className = 'score-breakdown';
+    if (state.zones.length) setActiveTool(0);
+  }
+
+  function setEnabled(on) {
+    ['btn-reveal', 'btn-clear', 'btn-next'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.disabled = !on;
+    });
+  }
+
+  function updateScores() {
+    const { correct, attempts } = state.scores;
+    const acc = attempts ? Math.round(correct / attempts * 100) : 0;
+    document.getElementById('sc-correct').querySelector('.val').textContent  = correct;
+    document.getElementById('sc-attempts').querySelector('.val').textContent = attempts;
+    document.getElementById('sc-accuracy').querySelector('.val').textContent = attempts ? `${acc}%` : '—';
+  }
+
+  return { init, generate, reveal, clearAll };
+})();
+
+document.addEventListener('DOMContentLoaded', ComboApp.init);
+</script>
+</body>
+</html>
