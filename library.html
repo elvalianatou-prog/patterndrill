@@ -3,18 +3,19 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>PatternDrill — Pattern Library</title>
+  <title>SmartMoneyReps — Pattern Library</title>
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
 
 <nav class="nav">
-  <div class="nav-logo">Pattern<span>Drill</span></div>
+  <div class="nav-logo">SmartMoney<span>Reps</span></div>
   <a class="nav-link" href="index.html">Drill</a>
   <a class="nav-link" href="combo.html">Combo</a>
   <a class="nav-link" href="quiz.html">Quiz</a>
   <a class="nav-link active" href="library.html">Library</a>
   <a class="nav-link" href="stats.html">Stats</a>
+  <button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()" title="Toggle theme">☀</button>
 </nav>
 
 <main class="page">
@@ -92,6 +93,18 @@ document.addEventListener('DOMContentLoaded', () => {
     if (card) card.scrollIntoView({ behavior: 'smooth' });
   }
 });
+</script>
+<script>
+function toggleTheme() {
+  const isDark = document.documentElement.getAttribute("data-theme") === "dark";
+  document.documentElement.setAttribute("data-theme", isDark ? "" : "dark");
+  document.getElementById("theme-toggle").textContent = isDark ? "☀" : "☾";
+  localStorage.setItem("smr-theme", isDark ? "light" : "dark");
+}
+(function() {
+  const t = localStorage.getItem("smr-theme");
+  if (t === "dark") { document.documentElement.setAttribute("data-theme","dark"); document.addEventListener("DOMContentLoaded", () => { const b = document.getElementById("theme-toggle"); if(b) b.textContent="☾"; }); }
+})();
 </script>
 </body>
 </html>
