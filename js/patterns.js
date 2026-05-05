@@ -25,25 +25,32 @@ function rp(n, d = 5)   { return parseFloat(n.toFixed(d)); }
 /**
  * Build a baseline of candles with a directional trend.
  * direction: 1 = up, -1 = down
- * volatility: 1=clean, 2=moderate, 3=noisy
+ * difficulty: 1=clean, 2=realistic, 3=live/noisy
  */
-function baseline(count, startPrice, direction, volatility = 1) {
+function baseline(count, startPrice, direction, difficulty = 1) {
   const candles = [];
   let price = startPrice;
-  const trendStrength = 0.0003 * volatility;
-  const bodySize      = 0.0008 * volatility;
-  const wickSize      = 0.0004 * volatility;
-  const noise         = 0.0002 * (volatility - 1);
+
+  // Level 1: clean, obvious trend, small wicks
+  // Level 2: choppier, bigger wicks, occasional counter-trend candles
+  // Level 3: very noisy, large wicks, frequent counter-trend moves, hard to read
+  const trendStrength = difficulty === 1 ? 0.0004 : difficulty === 2 ? 0.0003 : 0.0002;
+  const bodySize      = difficulty === 1 ? 0.0010 : difficulty === 2 ? 0.0014 : 0.0018;
+  const wickSize      = difficulty === 1 ? 0.0003 : difficulty === 2 ? 0.0009 : 0.0018;
+  const counterProb   = difficulty === 1 ? 0.25   : difficulty === 2 ? 0.38   : 0.48;
 
   for (let i = 0; i < count; i++) {
-    const drift    = direction * rand(0, trendStrength);
-    const noiseAdj = rand(-noise, noise);
-    const isBull   = Math.random() > (direction === 1 ? 0.4 : 0.6);
-    const body     = rand(bodySize * 0.3, bodySize);
-    const o = price + noiseAdj;
-    const c = o + (isBull ? 1 : -1) * body + drift;
-    const h = Math.max(o, c) + rand(0, wickSize);
-    const l = Math.min(o, c) - rand(0, wickSize);
+    const drift  = direction * rand(trendStrength * 0.3, trendStrength);
+    const isBull = Math.random() > (direction === 1 ? counterProb : 1 - counterProb);
+    const body   = rand(bodySize * 0.3, bodySize);
+    const o      = price;
+    const c      = o + (isBull ? 1 : -1) * body + drift;
+
+    // Level 3: occasionally throw in a spike wick for confusion
+    const extraWick = difficulty === 3 && Math.random() < 0.12 ? rand(0.001, 0.003) : 0;
+    const h = Math.max(o, c) + rand(0, wickSize) + extraWick;
+    const l = Math.min(o, c) - rand(0, wickSize) - (difficulty === 3 && Math.random() < 0.12 ? rand(0.001, 0.003) : 0);
+
     candles.push({ o: rp(o), h: rp(h), l: rp(l), c: rp(c) });
     price = c;
   }
@@ -67,20 +74,47 @@ function impulse(candles, startIdx, direction, bars = 4, strength = 0.002) {
 }
 
 /**
- * Apply noise to candles outside the pattern zone (for higher difficulties)
+ * Apply noise to candles outside the pattern zone for higher difficulties.
+ * Level 2: adds bigger wicks and chop around the pattern.
+ * Level 3: injects decoy patterns (fake OB-looking candles) to confuse.
  */
 function applyNoise(candles, zone, level) {
   if (level < 2) return;
-  const noiseFactor = level === 2 ? 0.0003 : 0.0007;
+
   candles.forEach((c, i) => {
-    if (i >= zone.startIdx - 2 && i <= zone.endIdx + 2) return;
-    const n = rand(-noiseFactor, noiseFactor);
-    candles[i] = {
-      o: rp(c.o + n),
-      h: rp(c.h + Math.abs(n)),
-      l: rp(c.l - Math.abs(n)),
-      c: rp(c.c + n),
-    };
+    if (i >= zone.startIdx - 1 && i <= zone.endIdx + 1) return;
+
+    if (level === 2) {
+      // Bigger wicks, slightly choppier bodies
+      const extraWick = rand(0.0003, 0.0009);
+      candles[i] = {
+        o: rp(c.o),
+        h: rp(c.h + extraWick),
+        l: rp(c.l - extraWick),
+        c: rp(c.c + rand(-0.0003, 0.0003)),
+      };
+    } else {
+      // Level 3: large random wicks + occasional decoy candles
+      const extraWick = rand(0.0006, 0.002);
+      const isDecoy   = Math.random() < 0.15; // fake strong candle to mislead
+      if (isDecoy) {
+        const dir  = Math.random() > 0.5 ? 1 : -1;
+        const body = rand(0.001, 0.0025);
+        candles[i] = {
+          o: rp(c.o),
+          c: rp(c.o + dir * body),
+          h: rp(c.o + Math.max(0, dir * body) + rand(0.0004, 0.001)),
+          l: rp(c.o + Math.min(0, dir * body) - rand(0.0004, 0.001)),
+        };
+      } else {
+        candles[i] = {
+          o: rp(c.o),
+          h: rp(c.h + extraWick),
+          l: rp(c.l - extraWick),
+          c: rp(c.c + rand(-0.0005, 0.0005)),
+        };
+      }
+    }
   });
 }
 
