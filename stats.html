@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PatternDrill — Stats</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-logo">Pattern<span>Drill</span></div>
+  <a class="nav-link" href="index.html">Drill</a>
+  <a class="nav-link" href="library.html">Library</a>
+  <a class="nav-link active" href="stats.html">Stats</a>
+</nav>
+
+<main class="page">
+  <div class="page-title">your progress</div>
+
+  <!-- Summary cards -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-label">total attempts</div>
+      <div class="stat-val" id="st-total">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">correct</div>
+      <div class="stat-val" id="st-correct">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">overall accuracy</div>
+      <div class="stat-val" id="st-accuracy">—</div>
+      <div class="stat-sub" id="st-accuracy-sub"></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">best streak</div>
+      <div class="stat-val" id="st-streak">—</div>
+      <div class="stat-sub">correct in a row</div>
+    </div>
+  </div>
+
+  <!-- Per-pattern accuracy -->
+  <div class="section-title" style="margin-bottom:10px;">accuracy by pattern</div>
+  <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:1.5rem;">
+    <table class="acc-table" id="pattern-table">
+      <thead>
+        <tr>
+          <th>Pattern</th>
+          <th>Attempts</th>
+          <th>Accuracy</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="pattern-tbody">
+        <tr><td colspan="4" style="color:var(--text-3);text-align:center;padding:20px;">no attempts yet — go drill!</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Weak spots -->
+  <div id="weak-section" style="display:none;">
+    <div class="section-title" style="margin-bottom:10px;">needs work</div>
+    <div id="weak-list" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:1.5rem;"></div>
+  </div>
+
+  <!-- Clear data -->
+  <div style="margin-top:2rem;padding-top:1rem;border-top:1px solid var(--border);">
+    <button class="btn" onclick="clearData()" style="color:var(--red);border-color:rgba(216,90,48,0.3);">clear all data</button>
+    <span style="font-size:11px;color:var(--text-3);margin-left:12px;">removes all saved attempts from this browser</span>
+  </div>
+</main>
+
+<script src="js/patterns.js"></script>
+<script src="js/scoring.js"></script>
+<script src="js/storage.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const attempts = Storage.getAttempts();
+  const stats    = calcStats(attempts);
+
+  document.getElementById('st-total').textContent    = stats.total || '—';
+  document.getElementById('st-correct').textContent  = stats.correct || '—';
+  document.getElementById('st-accuracy').textContent = stats.total ? `${stats.accuracy}%` : '—';
+  document.getElementById('st-streak').textContent   = stats.bestStreak || '—';
+
+  if (stats.accuracy >= 70) document.getElementById('st-accuracy-sub').textContent = 'solid';
+  else if (stats.accuracy >= 50) document.getElementById('st-accuracy-sub').textContent = 'keep drilling';
+  else if (stats.total > 0) document.getElementById('st-accuracy-sub').textContent = 'needs work';
+
+  // Per-pattern table
+  const tbody = document.getElementById('pattern-tbody');
+  const patterns = Object.values(stats.byPattern).sort((a,b) => b.total - a.total);
+
+  if (patterns.length) {
+    tbody.innerHTML = patterns.map(p => {
+      const acc   = Math.round((p.correct / p.total) * 100);
+      const cls   = acc >= 70 ? 'high' : acc >= 45 ? 'mid' : 'low';
+      return `<tr>
+        <td>${p.label}</td>
+        <td style="color:var(--text-2)">${p.total}</td>
+        <td>
+          <span class="acc-bar-wrap"><span class="acc-bar ${cls}" style="width:${acc}%"></span></span>
+          <span style="color:var(--text-1)">${acc}%</span>
+        </td>
+        <td><a href="index.html" style="font-size:11px;color:var(--amber)">drill →</a></td>
+      </tr>`;
+    }).join('');
+  }
+
+  // Weak spots
+  const ws = weakSpots(stats.byPattern);
+  if (ws.length) {
+    document.getElementById('weak-section').style.display = 'block';
+    document.getElementById('weak-list').innerHTML = ws.slice(0,3).map(w => `
+      <div style="padding:10px 14px;background:var(--bg-2);border:1px solid rgba(216,90,48,0.3);border-radius:var(--radius-md);font-size:12px;">
+        <div style="color:var(--red);margin-bottom:2px;">${w.label}</div>
+        <div style="color:var(--text-3)">${w.accuracy}% from ${w.total} attempts</div>
+      </div>
+    `).join('');
+  }
+});
+
+function clearData() {
+  if (confirm('Clear all saved attempts? This cannot be undone.')) {
+    Storage.clearAttempts();
+    location.reload();
+  }
+}
+</script>
+</body>
+</html>
