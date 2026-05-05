@@ -45,9 +45,9 @@ class CandleChart {
   _drawGrid(toY, minP, maxP, W, H, pad) {
     const { ctx } = this;
     const steps   = 5;
-    const isDark  = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    const gridCol = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
-    const textCol = isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.35)';
+    const isDark  = document.documentElement.getAttribute('data-theme') === 'dark';
+    const gridCol = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+    const textCol = isDark ? '#4c525e' : '#b2b5be';
 
     for (let i = 0; i <= steps; i++) {
       const p = minP + (maxP - minP) * (i / steps);
@@ -71,7 +71,7 @@ class CandleChart {
 
     candles.forEach((c, i) => {
       const isBull = c.c >= c.o;
-      const col    = isBull ? '#1D9E75' : '#D85A30';
+      const col    = isBull ? '#26a69a' : '#ef5350';
       const cx     = pad.l + i * cw + cw / 2;
       const x0     = pad.l + i * cw + (cw - bw) / 2;
 
