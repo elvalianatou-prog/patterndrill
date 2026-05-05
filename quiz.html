@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PatternDrill — Quiz Mode</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    .quiz-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 6px;
+      margin-bottom: 1rem;
+    }
+    .quiz-chip {
+      padding: 9px 11px;
+      font-size: 11px;
+      font-family: var(--font-mono);
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      color: var(--text-2);
+      text-align: left;
+      cursor: pointer;
+      transition: all var(--t);
+      line-height: 1.4;
+    }
+    .quiz-chip:hover { background: var(--bg-3); border-color: var(--border-2); color: var(--text-1); }
+    .quiz-chip.selected { background: var(--amber-glow); border-color: var(--amber-dim); color: var(--amber); }
+    .quiz-chip .chip-format {
+      font-size: 9px;
+      color: var(--text-3);
+      margin-top: 2px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .quiz-chip.selected .chip-format { color: var(--amber-dim); }
+
+    .question-box {
+      padding: 10px 14px;
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--amber-dim);
+      border-radius: 0 var(--radius-md) var(--radius-md) 0;
+      font-size: 13px;
+      color: var(--text-1);
+      margin-bottom: 0.75rem;
+      display: none;
+    }
+    .question-box.visible { display: block; }
+
+    .answer-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 8px;
+      margin-bottom: 1rem;
+    }
+    .answer-btn {
+      padding: 10px 14px;
+      font-size: 12px;
+      font-family: var(--font-mono);
+      background: var(--bg-2);
+      border: 1px solid var(--border-2);
+      border-radius: var(--radius-md);
+      color: var(--text-1);
+      text-align: left;
+      cursor: pointer;
+      transition: all var(--t);
+      line-height: 1.4;
+    }
+    .answer-btn:hover:not(:disabled) { background: var(--bg-3); border-color: var(--text-3); }
+    .answer-btn:disabled { cursor: default; }
+    .answer-btn.correct { background: var(--green-dim); border-color: rgba(29,158,117,0.6); color: #7ee8c2; }
+    .answer-btn.wrong   { background: var(--red-dim);   border-color: rgba(216,90,48,0.4);  color: #f4a07a; }
+    .answer-btn.reveal  { background: var(--green-dim); border-color: rgba(29,158,117,0.6); color: #7ee8c2; opacity: 0.7; }
+
+    .locate-instruction {
+      font-size: 12px;
+      color: var(--text-2);
+      padding: 7px 12px;
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      margin-bottom: 0.75rem;
+      display: none;
+    }
+    .locate-instruction.visible { display: block; }
+
+    .explanation-box {
+      padding: 12px 16px;
+      border-radius: var(--radius-md);
+      font-size: 12px;
+      line-height: 1.7;
+      border: 1px solid var(--border);
+      background: var(--bg-2);
+      color: var(--text-2);
+      display: none;
+      margin-bottom: 1rem;
+    }
+    .explanation-box.visible { display: block; }
+    .explanation-box strong { color: var(--text-1); font-weight: 500; }
+
+    .format-badge {
+      display: inline-block;
+      font-size: 10px;
+      padding: 2px 8px;
+      border-radius: 20px;
+      margin-left: 8px;
+      vertical-align: middle;
+    }
+    .format-identify { background: var(--blue-dim); color: var(--blue); border: 1px solid rgba(55,138,221,0.3); }
+    .format-locate   { background: var(--amber-glow); color: var(--amber); border: 1px solid var(--amber-dim); }
+
+    .streak-banner {
+      display: none;
+      padding: 8px 14px;
+      background: var(--amber-glow);
+      border: 1px solid var(--amber-dim);
+      border-radius: var(--radius-md);
+      font-size: 12px;
+      color: var(--amber);
+      margin-bottom: 0.75rem;
+      text-align: center;
+    }
+    .streak-banner.visible { display: block; }
+  </style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-logo">Pattern<span>Drill</span></div>
+  <a class="nav-link" href="index.html">Drill</a>
+  <a class="nav-link" href="combo.html">Combo</a>
+  <a class="nav-link active" href="quiz.html">Quiz</a>
+  <a class="nav-link" href="library.html">Library</a>
+  <a class="nav-link" href="stats.html">Stats</a>
+</nav>
+
+<main class="page">
+
+  <!-- Quiz selector -->
+  <div class="label">select concept to quiz</div>
+  <div class="quiz-grid" id="quiz-grid"></div>
+
+  <!-- Difficulty -->
+  <div class="diff-row">
+    <span class="diff-label">difficulty</span>
+    <button class="diff-chip selected" data-diff="1">1 — clean</button>
+    <button class="diff-chip" data-diff="2">2 — realistic</button>
+    <button class="diff-chip" data-diff="3">3 — live</button>
+  </div>
+
+  <!-- Streak banner -->
+  <div class="streak-banner" id="streak-banner"></div>
+
+  <!-- Question -->
+  <div class="question-box" id="question-box"></div>
+
+  <!-- Chart -->
+  <div class="chart-wrap" id="chart-wrap">
+    <canvas id="chart-canvas"></canvas>
+    <canvas id="overlay-canvas"></canvas>
+    <div class="chart-empty" id="chart-empty">
+      <div class="chart-empty-icon">?</div>
+      <div class="chart-empty-text">select a concept above to start quizzing</div>
+    </div>
+    <div class="chart-loader" id="chart-loader">
+      <div class="loader-text">GENERATING</div>
+      <div class="loader-bar"></div>
+    </div>
+  </div>
+
+  <!-- Hint -->
+  <div class="hint-bar">
+    <span class="hint-label">hint</span>
+    <span id="hint-text" style="color:var(--text-2)">—</span>
+  </div>
+
+  <!-- Locate instruction (for locate-format quizzes) -->
+  <div class="locate-instruction" id="locate-instruction">
+    <span style="color:var(--text-3)">step 1 →</span> drag to mark the zone on the chart, then pick your answer below
+  </div>
+
+  <!-- Answer buttons -->
+  <div class="answer-grid" id="answer-grid"></div>
+
+  <!-- Controls -->
+  <div class="controls">
+    <button class="btn" id="btn-skip" onclick="QuizApp.skip()" disabled>skip</button>
+    <div class="controls-right">
+      <button class="btn btn-primary" id="btn-next" onclick="QuizApp.next()" disabled>next question ↗</button>
+    </div>
+  </div>
+
+  <!-- Explanation -->
+  <div class="explanation-box" id="explanation-box"></div>
+
+  <!-- Score row -->
+  <div class="score-row">
+    <div class="score-chip" id="sc-correct">  correct  <span class="val">0</span></div>
+    <div class="score-chip" id="sc-attempts"> attempts <span class="val">0</span></div>
+    <div class="score-chip" id="sc-accuracy"> accuracy <span class="val">—</span></div>
+    <div class="score-chip" id="sc-streak">   streak   <span class="val">0</span></div>
+  </div>
+
+</main>
+
+<script src="js/patterns.js"></script>
+<script src="js/quizzes.js"></script>
+<script src="js/chart.js"></script>
+<script src="js/scoring.js"></script>
+<script src="js/storage.js"></script>
+<script>
+const QuizApp = (() => {
+  let state = {
+    quizKey:     null,
+    difficulty:  1,
+    current:     null,   // current quiz result
+    answered:    false,
+    userMark:    null,
+    markStart:   null,
+    scores:      { correct: 0, attempts: 0, streak: 0 },
+  };
+  let chart;
+
+  function init() {
+    chart = new CandleChart('chart-canvas', 'overlay-canvas');
+
+    // Build quiz chips
+    const grid = document.getElementById('quiz-grid');
+    getQuizList().forEach(({ key, label, format }) => {
+      const btn = document.createElement('button');
+      btn.className = 'quiz-chip';
+      btn.dataset.key = key;
+      btn.innerHTML = `${label}<div class="chip-format">${format === 'identify' ? '⬡ identify' : '◎ locate + identify'}</div>`;
+      btn.addEventListener('click', () => selectQuiz(key));
+      grid.appendChild(btn);
+    });
+
+    // Difficulty
+    document.querySelectorAll('.diff-chip').forEach(c => {
+      c.addEventListener('click', () => {
+        state.difficulty = parseInt(c.dataset.diff);
+        document.querySelectorAll('.diff-chip').forEach(x => x.classList.remove('selected'));
+        c.classList.add('selected');
+        if (state.quizKey) generate();
+      });
+    });
+
+    // Overlay for locate-format
+    const ov = document.getElementById('overlay-canvas');
+    ov.addEventListener('mousedown',  e => onDown(e.clientX));
+    ov.addEventListener('mousemove',  e => onMove(e.clientX));
+    ov.addEventListener('mouseup',    e => onUp(e.clientX));
+    ov.addEventListener('touchstart', e => onDown(e.touches[0].clientX), { passive: true });
+    ov.addEventListener('touchmove',  e => { e.preventDefault(); onMove(e.touches[0].clientX); }, { passive: false });
+    ov.addEventListener('touchend',   e => onUp(e.changedTouches[0].clientX));
+  }
+
+  function selectQuiz(key) {
+    state.quizKey = key;
+    document.querySelectorAll('.quiz-chip').forEach(c => c.classList.toggle('selected', c.dataset.key === key));
+    generate();
+  }
+
+  async function generate() {
+    if (!state.quizKey) return;
+    state.answered = false;
+    state.userMark = null;
+    state.markStart = null;
+
+    document.getElementById('chart-loader').classList.add('visible');
+    document.getElementById('chart-empty').style.display = 'none';
+    document.getElementById('question-box').className = 'question-box';
+    document.getElementById('explanation-box').className = 'explanation-box';
+    document.getElementById('answer-grid').innerHTML = '';
+    document.getElementById('locate-instruction').className = 'locate-instruction';
+    document.getElementById('btn-skip').disabled = true;
+    document.getElementById('btn-next').disabled = true;
+
+    await new Promise(r => setTimeout(r, 60));
+
+    try {
+      const result = generateQuiz(state.quizKey, state.difficulty);
+      state.current = result;
+
+      chart.load(result.candles);
+
+      // Show question
+      const qbox = document.getElementById('question-box');
+      const formatBadge = result.format === 'identify'
+        ? '<span class="format-badge format-identify">identify</span>'
+        : '<span class="format-badge format-locate">locate + identify</span>';
+      qbox.innerHTML = result.question + formatBadge;
+      qbox.className = 'question-box visible';
+
+      document.getElementById('hint-text').textContent = result.hint;
+
+      // Locate instruction
+      if (result.format === 'locate') {
+        document.getElementById('locate-instruction').className = 'locate-instruction visible';
+        document.getElementById('overlay-canvas').style.cursor = 'col-resize';
+      } else {
+        document.getElementById('overlay-canvas').style.cursor = 'default';
+        // For identify, show zone immediately as a neutral highlight
+        if (result.zone) chart.drawZone(result.zone, 'answer');
+      }
+
+      // Build answer buttons
+      buildAnswers(result.allAnswers, result.correctAnswer);
+      document.getElementById('btn-skip').disabled = false;
+
+    } catch(e) {
+      console.error(e);
+    }
+    document.getElementById('chart-loader').classList.remove('visible');
+  }
+
+  function buildAnswers(allAnswers, correct) {
+    const grid = document.getElementById('answer-grid');
+    grid.innerHTML = '';
+    allAnswers.forEach(ans => {
+      const btn = document.createElement('button');
+      btn.className = 'answer-btn';
+      btn.textContent = ans;
+      btn.addEventListener('click', () => submitAnswer(ans, correct, btn));
+      grid.appendChild(btn);
+    });
+  }
+
+  function submitAnswer(chosen, correct, btnEl) {
+    if (state.answered) return;
+    state.answered = true;
+    state.scores.attempts++;
+
+    const isCorrect = chosen === correct;
+    if (isCorrect) { state.scores.correct++; state.scores.streak++; }
+    else           { state.scores.streak = 0; }
+
+    // Style all buttons
+    document.querySelectorAll('.answer-btn').forEach(b => {
+      b.disabled = true;
+      if (b.textContent === correct) b.className = 'answer-btn correct';
+      else if (b === btnEl && !isCorrect) b.className = 'answer-btn wrong';
+      else b.className = 'answer-btn';
+    });
+
+    // Show zone on chart
+    if (state.current?.zone) {
+      chart.clearOverlay();
+      chart.drawZone(state.current.zone, 'answer');
+      if (state.userMark) chart.drawZone(state.userMark, 'user');
+    }
+
+    // Explanation
+    const exp = document.getElementById('explanation-box');
+    exp.className = `explanation-box visible`;
+    exp.style.borderColor = isCorrect ? 'rgba(29,158,117,0.4)' : 'rgba(216,90,48,0.4)';
+    exp.style.background  = isCorrect ? 'var(--green-dim)' : 'var(--red-dim)';
+    exp.style.color       = isCorrect ? '#7ee8c2' : '#f4a07a';
+    exp.innerHTML = `<strong>${isCorrect ? '✓ Correct.' : '✗ Wrong.'}</strong> ${state.current.explanation}`;
+
+    // Streak banner
+    if (state.scores.streak >= 3) {
+      const banner = document.getElementById('streak-banner');
+      banner.className = 'streak-banner visible';
+      banner.textContent = `🔥 ${state.scores.streak} in a row`;
+    } else {
+      document.getElementById('streak-banner').className = 'streak-banner';
+    }
+
+    // Save to storage
+    Storage.saveAttempt({
+      patternKey:   state.quizKey,
+      patternLabel: state.current.label,
+      correct:      isCorrect,
+      iou:          isCorrect ? 1 : 0,
+      grade:        isCorrect ? 'excellent' : 'wrong',
+      difficulty:   state.difficulty,
+    });
+
+    updateScores();
+    document.getElementById('btn-next').disabled = false;
+  }
+
+  function skip() {
+    if (!state.current) return;
+    // Reveal answer without scoring
+    if (state.current.zone) {
+      chart.clearOverlay();
+      chart.drawZone(state.current.zone, 'answer');
+    }
+    document.querySelectorAll('.answer-btn').forEach(b => {
+      b.disabled = true;
+      if (b.textContent === state.current.correctAnswer) b.className = 'answer-btn reveal';
+    });
+    const exp = document.getElementById('explanation-box');
+    exp.className = 'explanation-box visible';
+    exp.style.borderColor = 'var(--border-2)';
+    exp.style.background  = 'var(--bg-2)';
+    exp.style.color       = 'var(--text-2)';
+    exp.innerHTML = `<strong>Skipped.</strong> ${state.current.explanation}`;
+    state.answered = true;
+    document.getElementById('btn-next').disabled = false;
+  }
+
+  function next() { generate(); }
+
+  // ─── Locate mode marking ───────────────────────────────────────────────────
+  function onDown(clientX) {
+    if (!state.current || state.current.format !== 'locate' || state.answered) return;
+    state.markStart = chart.xToIndex(clientX);
+  }
+  function onMove(clientX) {
+    if (state.markStart === null) return;
+    const cur = chart.xToIndex(clientX);
+    chart.clearOverlay();
+    chart.drawDragPreview(state.markStart, cur);
+  }
+  function onUp(clientX) {
+    if (state.markStart === null) return;
+    const cur = chart.xToIndex(clientX);
+    state.userMark = { startIdx: Math.min(state.markStart, cur), endIdx: Math.max(state.markStart, cur) };
+    state.markStart = null;
+    chart.clearOverlay();
+    chart.drawZone(state.userMark, 'user');
+  }
+
+  function updateScores() {
+    const { correct, attempts, streak } = state.scores;
+    const acc = attempts ? Math.round(correct / attempts * 100) : 0;
+    document.getElementById('sc-correct').querySelector('.val').textContent  = correct;
+    document.getElementById('sc-attempts').querySelector('.val').textContent = attempts;
+    document.getElementById('sc-accuracy').querySelector('.val').textContent = attempts ? `${acc}%` : '—';
+    document.getElementById('sc-streak').querySelector('.val').textContent   = streak;
+    document.getElementById('sc-streak').classList.toggle('streak-on', streak >= 3);
+  }
+
+  return { init, next, skip };
+})();
+
+document.addEventListener('DOMContentLoaded', QuizApp.init);
+</script>
+</body>
+</html>
