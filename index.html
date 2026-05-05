@@ -3,23 +3,21 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>PatternDrill — ICT Pattern Trainer</title>
+  <title>SmartMoneyReps — ICT Pattern Trainer</title>
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
-
 <nav class="nav">
-  <div class="nav-logo">Pattern<span>Drill</span></div>
+  <div class="nav-logo">SmartMoney<span>Reps</span></div>
   <a class="nav-link active" href="index.html">Drill</a>
   <a class="nav-link" href="combo.html">Combo</a>
   <a class="nav-link" href="quiz.html">Quiz</a>
   <a class="nav-link" href="library.html">Library</a>
   <a class="nav-link" href="stats.html">Stats</a>
+  <button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()" title="Toggle theme">☀</button>
 </nav>
 
 <main class="page">
-
-  <!-- Pattern selector -->
   <div class="label">Select pattern</div>
   <div class="pattern-grid">
     <button class="pattern-chip" data-key="order-block">Order Block</button>
@@ -33,57 +31,48 @@
     <button class="pattern-chip" data-key="ote">OTE Zone</button>
   </div>
 
-  <!-- Difficulty -->
   <div class="diff-row">
-    <span class="diff-label">difficulty</span>
-    <button class="diff-chip selected" data-diff="1">1 — clean</button>
-    <button class="diff-chip" data-diff="2">2 — realistic</button>
-    <button class="diff-chip" data-diff="3">3 — live</button>
+    <span class="diff-label">Difficulty</span>
+    <button class="diff-chip selected" data-diff="1">Clean</button>
+    <button class="diff-chip" data-diff="2">Realistic</button>
+    <button class="diff-chip" data-diff="3">Live</button>
   </div>
 
-  <!-- Chart -->
   <div class="chart-wrap" id="chart-wrap">
     <canvas id="chart-canvas"></canvas>
     <canvas id="overlay-canvas"></canvas>
-
     <div class="chart-empty" id="chart-empty">
       <div class="chart-empty-icon">▦</div>
       <div class="chart-empty-text">select a pattern above to begin</div>
     </div>
-
     <div class="chart-loader" id="chart-loader">
-      <div class="loader-text">GENERATING</div>
+      <div class="loader-text">Generating</div>
       <div class="loader-bar"></div>
     </div>
   </div>
 
-  <!-- Hint -->
   <div class="hint-bar">
-    <span class="hint-label">hint</span>
-    <span id="hint-text" style="color: var(--text-2);">—</span>
+    <span class="hint-label">Hint</span>
+    <span id="hint-text" style="color:var(--text-2)">—</span>
   </div>
 
-  <!-- Controls -->
   <div class="controls">
-    <button class="btn" id="btn-mark"   onclick="App.toggleMarkMode()" disabled>[ mark zone ]</button>
-    <button class="btn" id="btn-reveal" onclick="App.reveal()"         disabled>reveal answer</button>
-    <button class="btn" id="btn-clear"  onclick="App.clearMark()"      disabled>clear mark</button>
+    <button class="btn" id="btn-mark"   onclick="App.toggleMarkMode()" disabled>Mark zone</button>
+    <button class="btn" id="btn-reveal" onclick="App.reveal()"         disabled>Reveal answer</button>
+    <button class="btn" id="btn-clear"  onclick="App.clearMark()"      disabled>Clear mark</button>
     <div class="controls-right">
-      <button class="btn btn-primary" id="btn-next" onclick="App.generateChart()" disabled>next chart ↗</button>
+      <button class="btn btn-primary" id="btn-next" onclick="App.generateChart()" disabled>Next chart →</button>
     </div>
   </div>
 
-  <!-- Feedback -->
   <div class="feedback" id="feedback"></div>
 
-  <!-- Score row -->
   <div class="score-row">
-    <div class="score-chip" id="sc-correct">  correct  <span class="val">0</span></div>
-    <div class="score-chip" id="sc-attempts"> attempts <span class="val">0</span></div>
-    <div class="score-chip" id="sc-accuracy"> accuracy <span class="val">—</span></div>
-    <div class="score-chip" id="sc-streak">   streak   <span class="val">0</span></div>
+    <div class="score-chip" id="sc-correct">Correct <span class="val">0</span></div>
+    <div class="score-chip" id="sc-attempts">Attempts <span class="val">0</span></div>
+    <div class="score-chip" id="sc-accuracy">Accuracy <span class="val">—</span></div>
+    <div class="score-chip" id="sc-streak">Streak <span class="val">0</span></div>
   </div>
-
 </main>
 
 <script src="js/patterns.js"></script>
@@ -91,5 +80,17 @@
 <script src="js/scoring.js"></script>
 <script src="js/storage.js"></script>
 <script src="js/app.js"></script>
+<script>
+function toggleTheme() {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  document.documentElement.setAttribute('data-theme', isDark ? '' : 'dark');
+  document.getElementById('theme-toggle').textContent = isDark ? '☀' : '☾';
+  localStorage.setItem('smr-theme', isDark ? 'light' : 'dark');
+}
+(function() {
+  const t = localStorage.getItem('smr-theme');
+  if (t === 'dark') { document.documentElement.setAttribute('data-theme','dark'); document.addEventListener('DOMContentLoaded', () => { const b = document.getElementById('theme-toggle'); if(b) b.textContent='☾'; }); }
+})();
+</script>
 </body>
 </html>
