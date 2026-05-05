@@ -95,31 +95,36 @@ class CandleChart {
 
   /**
    * Draw a highlight zone.
-   * type: 'user' (amber) | 'answer' (blue)
+   * type: 'user' (amber) | 'answer' (blue) | { fill, stroke, label } for custom
    */
   drawZone(zone, type = 'user') {
     const { octx, pad } = this;
-    const { W, H, cw, toY, minP, maxP } = this._layout();
+    const { W, H, cw } = this._layout();
 
-    const styles = {
+    const presets = {
       user:   { fill: 'rgba(186,117,23,0.13)',  stroke: '#BA7517', label: 'YOUR MARK' },
-      answer: { fill: 'rgba(55,138,221,0.15)',   stroke: '#378ADD', label: 'PATTERN ZONE' },
+      answer: { fill: 'rgba(55,138,221,0.15)',  stroke: '#378ADD', label: 'PATTERN ZONE' },
     };
-    const s  = styles[type] ?? styles.user;
+    const s  = (typeof type === 'object') ? type : (presets[type] ?? presets.user);
     const x1 = pad.l + zone.startIdx * cw;
     const x2 = pad.l + (zone.endIdx + 1) * cw;
     const h  = H - pad.t - pad.b;
 
     octx.fillStyle   = s.fill;
     octx.fillRect(x1, pad.t, x2 - x1, h);
-
     octx.strokeStyle = s.stroke;
     octx.lineWidth   = 1.5;
     octx.strokeRect(x1, pad.t, x2 - x1, h);
+    octx.fillStyle   = s.stroke;
+    octx.font        = 'bold 10px monospace';
+    octx.fillText(s.label || '', x1 + 4, pad.t + 12);
+  }
 
-    octx.fillStyle = s.stroke;
-    octx.font      = 'bold 10px monospace';
-    octx.fillText(s.label, x1 + 4, pad.t + 12);
+  /**
+   * Draw a user drag zone with a specific color (for combo mode)
+   */
+  drawColorZone(zone, colorDef, label = 'MARK') {
+    this.drawZone(zone, { fill: colorDef.fill, stroke: colorDef.stroke, label });
   }
 
   /**
