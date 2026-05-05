@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PatternDrill — Pattern Library</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-logo">Pattern<span>Drill</span></div>
+  <a class="nav-link" href="index.html">Drill</a>
+  <a class="nav-link active" href="library.html">Library</a>
+  <a class="nav-link" href="stats.html">Stats</a>
+</nav>
+
+<main class="page">
+  <div class="page-title">pattern library</div>
+  <div class="library-grid" id="library-grid"></div>
+</main>
+
+<script src="js/patterns.js"></script>
+<script src="js/chart.js"></script>
+<script>
+const DEFINITIONS = {
+  'order-block':     'The last opposing candle before a strong impulsive move. Institutional orders are placed here, making it a high-probability reaction zone when price returns.',
+  'fair-value-gap':  'A 3-candle imbalance where price moved so fast it left an unfilled gap between candle 1\'s high and candle 3\'s low. Price often returns to fill it.',
+  'breaker-block':   'A failed Order Block that flips polarity. When price breaks through an OB instead of bouncing, that zone becomes supply/resistance.',
+  'bos':             'Price closes decisively beyond a prior swing high (bullish BOS) or swing low (bearish BOS), confirming trend continuation.',
+  'choch':           'The first break against the prevailing trend — signaling a potential reversal. Unlike BOS (continuation), CHoCH is the initial shift in market character.',
+  'liquidity-sweep': 'Price raids a pool of stop orders above swing highs or below swing lows, then immediately reverses. Identified by a long wick through the level and a close back through.',
+  'inducement':      'A deliberately engineered false break designed to trigger retail traders before the real institutional move in the opposite direction.',
+  'rejection-block': 'A candle with a disproportionately long wick, showing strong rejection at a level. The wick represents price testing a zone and being firmly rejected.',
+  'ote':             'The Optimal Trade Entry zone sits between the 61.8% and 79% Fibonacci retracement of a swing. ICT uses this as the primary entry area after displacement.',
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+  const grid     = document.getElementById('library-grid');
+  const patterns = getPatternList();
+
+  patterns.forEach(({ key, label }) => {
+    // Create card
+    const card = document.createElement('div');
+    card.className = 'lib-card';
+
+    const canvasId = `lib-canvas-${key}`;
+    card.innerHTML = `
+      <div class="lib-card-title">${label}</div>
+      <div class="lib-card-body">${DEFINITIONS[key] || ''}</div>
+      <div class="lib-card-canvas">
+        <canvas id="${canvasId}"></canvas>
+        <canvas id="${canvasId}-ov"></canvas>
+      </div>
+      <a class="lib-drill-btn" href="index.html?pattern=${key}">drill this pattern →</a>
+    `;
+    grid.appendChild(card);
+
+    // Render example chart
+    requestAnimationFrame(() => {
+      try {
+        const wrap   = card.querySelector('.lib-card-canvas');
+        const cvs    = document.getElementById(canvasId);
+        const ov     = document.getElementById(`${canvasId}-ov`);
+        cvs.width    = wrap.clientWidth  || 260;
+        cvs.height   = wrap.clientHeight || 110;
+        ov.width     = cvs.width;
+        ov.height    = cvs.height;
+        ov.style.position = 'absolute';
+        ov.style.top = '0';
+        ov.style.left = '0';
+
+        const c = new CandleChart(canvasId, `${canvasId}-ov`);
+        const r = generatePattern(key, 1);
+        c.load(r.candles);
+
+        // Show the zone after a short delay
+        setTimeout(() => c.drawZone(r.zone, 'answer'), 200);
+      } catch(e) {
+        console.warn('Library chart error:', key, e);
+      }
+    });
+  });
+
+  // If a pattern was linked from index, highlight it
+  const params = new URLSearchParams(location.search);
+  const linked = params.get('pattern');
+  if (linked) {
+    const card = grid.querySelector(`[data-key="${linked}"]`);
+    if (card) card.scrollIntoView({ behavior: 'smooth' });
+  }
+});
+</script>
+</body>
+</html>
