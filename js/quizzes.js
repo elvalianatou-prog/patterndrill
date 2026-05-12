@@ -50,18 +50,23 @@ function qImpulse(candles, startIdx, direction, bars = 4, strength = 0.002) {
 // ─── Quiz Registry ────────────────────────────────────────────────────────────
 
 const QUIZZES = {
-  'bos-vs-choch':       { label: 'BOS vs CHoCH',             fn: quizBOSvsCHoCH,      format: 'identify' },
-  'premium-discount':   { label: 'Premium vs Discount',      fn: quizPremiumDiscount, format: 'identify' },
-  'ob-type':            { label: 'Bullish vs Bearish OB',    fn: quizOBType,          format: 'identify' },
-  'fvg-direction':      { label: 'FVG Direction',            fn: quizFVGDirection,    format: 'identify' },
-  'session-id':         { label: 'Identify the Session',     fn: quizSessionID,       format: 'identify' },
-  'judas-swing':        { label: 'Judas Swing',              fn: quizJudasSwing,      format: 'locate'   },
-  'mss':                { label: 'Market Structure Shift',   fn: quizMSS,             format: 'locate'   },
-  'silver-bullet':      { label: 'Silver Bullet Setup',      fn: quizSilverBullet,    format: 'locate'   },
-  'turtle-soup':        { label: 'Turtle Soup',              fn: quizTurtleSoup,      format: 'locate'   },
-  'pd-array':           { label: 'Identify the PD Array',    fn: quizPDArray,         format: 'identify' },
-  'equal-highs-lows':   { label: 'Equal Highs / Equal Lows', fn: quizEqualHL,        format: 'locate'   },
-  'ifvg':               { label: 'Inverse FVG',              fn: quizIFVG,            format: 'locate'   },
+  'bos-vs-choch':           { label: 'BOS vs CHoCH',                fn: quizBOSvsCHoCH,           format: 'identify' },
+  'premium-discount':       { label: 'Premium vs Discount',         fn: quizPremiumDiscount,      format: 'identify' },
+  'ob-type':                { label: 'Bullish vs Bearish OB',       fn: quizOBType,               format: 'identify' },
+  'fvg-direction':          { label: 'FVG Direction',               fn: quizFVGDirection,         format: 'identify' },
+  'session-id':             { label: 'Identify the Session',        fn: quizSessionID,            format: 'identify' },
+  'judas-swing':            { label: 'Judas Swing',                 fn: quizJudasSwing,           format: 'locate'   },
+  'mss':                    { label: 'Market Structure Shift',      fn: quizMSS,                  format: 'locate'   },
+  'silver-bullet':          { label: 'Silver Bullet Setup',         fn: quizSilverBullet,         format: 'locate'   },
+  'turtle-soup':            { label: 'Turtle Soup',                 fn: quizTurtleSoup,           format: 'locate'   },
+  'pd-array':               { label: 'Identify the PD Array',       fn: quizPDArray,              format: 'identify' },
+  'equal-highs-lows':       { label: 'Equal Highs / Equal Lows',    fn: quizEqualHL,              format: 'locate'   },
+  'ifvg':                   { label: 'Inverse FVG',                 fn: quizIFVG,                 format: 'locate'   },
+  'liquidity-run':          { label: 'High vs Low Resistance Run',  fn: quizLiquidityRun,         format: 'identify' },
+  'ext-int-liquidity':      { label: 'External vs Internal Range',  fn: quizExtIntLiquidity,      format: 'identify' },
+  'market-protraction':     { label: 'Market Protraction',          fn: quizMarketProtraction,    format: 'identify' },
+  'accumulation-dist':      { label: 'Accumulation vs Distribution',fn: quizAccDist,              format: 'identify' },
+  'smt-divergence':         { label: 'SMT Divergence',              fn: quizSMTDivergence,        format: 'identify' },
 };
 
 // ─── 1. BOS vs CHoCH — most confused pair ────────────────────────────────────
@@ -571,6 +576,286 @@ function quizIFVG(difficulty = 1) {
     hint: 'Did price respect the FVG and bounce — or did it break through the zone completely?',
     explanation: 'An Inverse FVG (IFVG) forms when price breaks through a Fair Value Gap instead of bouncing from it. The failed FVG flips polarity — it now acts as RESISTANCE (if bullish FVG fails) or SUPPORT (if bearish FVG fails). Same concept as a breaker block, applied to FVGs.',
   };
+}
+
+// ─── 13. High vs Low Resistance Liquidity Run ────────────────────────────────
+function quizLiquidityRun(difficulty = 1) {
+  const isLowResistance = Math.random() > 0.5;
+  const n = 60;
+  const start = 1.0830 + qRand(0, 0.008);
+
+  if (isLowResistance) {
+    // Low resistance: fast impulse one direction, very little price action, then clean run
+    const candles = qBaseline(n, start, 1, difficulty);
+    // Fast impulse drop (creating very little price action between lows)
+    qImpulse(candles, 8, -1, 6, 0.003);
+    // Then clean run up through short-term highs with minimal resistance
+    qImpulse(candles, 15, 1, 4, 0.002);
+    const idx1 = 20; candles[idx1].h = qRp(candles[idx1].h + 0.001);
+    qImpulse(candles, idx1 + 1, -1, 2, 0.0008);
+    qImpulse(candles, idx1 + 3, 1, 4, 0.002);
+    const idx2 = idx1 + 7; candles[idx2].h = qRp(candles[idx2].h + 0.001);
+    qImpulse(candles, idx2 + 1, 1, 5, 0.002);
+    return {
+      candles,
+      correctAnswer: 'Low Resistance — price runs through short-term highs easily',
+      wrongAnswers: ['High Resistance — price fights through many levels', 'Consolidation — no clear direction', 'Reversal — trend is changing'],
+      question: 'What type of liquidity run is this?',
+      zone: { startIdx: 8, endIdx: 14 },
+      hint: 'How much price action exists between current price and the old highs being targeted? Is there a lot of structure in the way?',
+      explanation: 'Low Resistance Liquidity Run: After a fast impulsive move in one direction, there is very little price action left in the wake. Price runs back through short-term highs/lows easily — like a hot knife through butter. Each short-term high broken = just another liquidity pool being run. Trade WITH this move.',
+    };
+  } else {
+    // High resistance: lots of peaks and troughs between price and the target level
+    const candles = qBaseline(n, start, 1, difficulty);
+    // Create lots of peaks and troughs — messy structure
+    for (let i = 8; i < 45; i += 4) {
+      const dir = (i / 4) % 2 === 0 ? 1 : -1;
+      qImpulse(candles, i, dir, 3, 0.0015);
+    }
+    return {
+      candles,
+      correctAnswer: 'High Resistance — price must fight through many old levels',
+      wrongAnswers: ['Low Resistance — price runs through highs easily', 'Consolidation — no clear direction', 'Reversal — trend is changing'],
+      question: 'What type of liquidity run is this?',
+      zone: { startIdx: 8, endIdx: 44 },
+      hint: 'Count the number of peaks and troughs between current price and the target. Is the path clear or cluttered?',
+      explanation: 'High Resistance Liquidity Run: There is a lot of price action between current price and the target liquidity. Every old high/low is a level price must fight through. These runs are slow, choppy and unpredictable. Only a major news event (NFP/FOMC) can cut through cleanly. Avoid trading these setups.',
+    };
+  }
+}
+
+// ─── 14. External vs Internal Range Liquidity ────────────────────────────────
+function quizExtIntLiquidity(difficulty = 1) {
+  const isExternal = Math.random() > 0.5;
+  const n = 60;
+  const start = 1.0830 + qRand(0, 0.008);
+  const candles = qBaseline(n, start, isExternal ? 1 : -1, difficulty);
+
+  // Define a clear consolidation range
+  const rangeStart = 10, rangeEnd = 30;
+  const rangeLow  = qRp(Math.min(...candles.slice(rangeStart, rangeEnd).map(c => c.l)));
+  const rangeHigh = qRp(Math.max(...candles.slice(rangeStart, rangeEnd).map(c => c.h)));
+
+  if (isExternal) {
+    // External: price breaks OUT of the range — highlighting the zone beyond
+    qImpulse(candles, rangeEnd + 1, 1, 5, 0.003);
+    // Mark the zone ABOVE the range high (external liquidity = the target beyond range)
+    candles[rangeEnd + 3].h = qRp(rangeHigh + 0.005);
+    return {
+      candles,
+      correctAnswer: 'External Range Liquidity — stop orders resting beyond the range boundary',
+      wrongAnswers: ['Internal Range Liquidity — imbalances inside the range', 'Consolidation liquidity — range is still intact', 'Premium zone — above equilibrium'],
+      question: 'Price has broken outside a defined range. What type of liquidity is being targeted?',
+      zone: { startIdx: rangeStart, endIdx: rangeEnd },
+      hint: 'Is price moving toward liquidity INSIDE the range (order blocks, FVGs) or OUTSIDE the range (stop orders beyond the highs/lows)?',
+      explanation: 'External Range Liquidity sits outside the current trading range — buy stops above range highs, sell stops below range lows. When price breaks out of the range it is targeting external liquidity. This is where you EXIT trades. Your entries come from internal range liquidity (FVGs and OBs inside the range).',
+    };
+  } else {
+    // Internal: price is inside the range, targeting an FVG or OB within it
+    const internalIdx = Math.floor(qRand(rangeStart + 3, rangeEnd - 5));
+    const base = candles[internalIdx - 1].c;
+    // Create an FVG inside the range
+    candles[internalIdx]   = { o: qRp(base - 0.0005), c: qRp(base + 0.003), h: qRp(base + 0.0035), l: qRp(base - 0.001) };
+    candles[internalIdx+1] = { o: qRp(base + 0.0025), c: qRp(base + 0.004), h: qRp(base + 0.005), l: qRp(base + 0.002) };
+    qImpulse(candles, internalIdx + 3, -1, 4, 0.002);
+    return {
+      candles,
+      correctAnswer: 'Internal Range Liquidity — FVG/OB imbalance inside the range',
+      wrongAnswers: ['External Range Liquidity — stops beyond the range', 'Equal highs — buy-side liquidity', 'Liquidity void — one-sided delivery'],
+      question: 'Price is targeting a zone inside the current trading range. What type of liquidity is this?',
+      zone: { startIdx: internalIdx, endIdx: internalIdx + 1 },
+      hint: 'Is price leaving the range or moving toward a specific zone WITHIN the range?',
+      explanation: 'Internal Range Liquidity consists of imbalances (FVGs, OBs, liquidity voids) inside the current trading range. These are your ENTRY zones — you buy internal range liquidity (discount OB inside range) and target external range liquidity (buy stops above the range high). Never confuse the two.',
+    };
+  }
+}
+
+// ─── 15. Market Protraction vs Impulse Swing ────────────────────────────────
+function quizMarketProtraction(difficulty = 1) {
+  const isProtraction = Math.random() > 0.5;
+  const n = 60;
+  const start = 1.0830 + qRand(0, 0.008);
+
+  if (isProtraction) {
+    // Market protraction: small counter-move at a kill zone time, followed by real move opposite
+    const candles = qBaseline(n, start, -1, difficulty);
+    const protIdx = Math.floor(qRand(22, 28));
+    const base = candles[protIdx - 1]?.c ?? start - 0.004;
+    // Small rally up (the protraction — counter to the real bearish direction)
+    qImpulse(candles, protIdx - 3, 1, 3, 0.0012);
+    candles[protIdx] = {
+      o: qRp(base + 0.001),
+      c: qRp(base + rand(0.0008, 0.0014)),
+      h: qRp(base + rand(0.0015, 0.0022)),
+      l: qRp(base),
+    };
+    // Real move — drops hard in the opposite direction
+    qImpulse(candles, protIdx + 1, -1, 6, 0.003);
+    return {
+      candles,
+      correctAnswer: 'Market Protraction — engineered fake move at a kill zone, real move is opposite',
+      wrongAnswers: ['Genuine Impulse Swing — this IS the real move', 'BOS — trend continuation confirmed', 'Inducement — false CHoCH'],
+      question: 'This small move occurred at a kill zone time. What is it?',
+      zone: { startIdx: protIdx - 3, endIdx: protIdx },
+      hint: 'Did this move at a specific session time (midnight NY, London open, NY open)? Does it reverse immediately into a much stronger move the other way?',
+      explanation: 'Market Protraction is a time-sensitive fake move that occurs at specific kill zone times (midnight NY = 7πμ Greece, London open = 9πμ, NY open = 2μμ). It is designed to manipulate sentiment before the REAL move in the opposite direction. If it goes higher → think lower. If it goes lower → think higher. Unlike a genuine impulse swing, a protraction immediately reverses into a strong expansion.',
+    };
+  } else {
+    // Genuine impulse swing: strong displacement, no immediate reversal
+    const candles = qBaseline(n, start, 1, difficulty);
+    const impIdx = Math.floor(qRand(20, 26));
+    qImpulse(candles, impIdx, 1, 7, 0.003);
+    return {
+      candles,
+      correctAnswer: 'Genuine Impulse Swing — real institutional displacement move',
+      wrongAnswers: ['Market Protraction — engineered fake move', 'Judas Swing — manipulation before reversal', 'CHoCH — change of character only'],
+      question: 'Is this a genuine institutional impulse or a market protraction?',
+      zone: { startIdx: impIdx, endIdx: impIdx + 6 },
+      hint: 'Does the move immediately reverse, or does price continue building on it? Is there sustained follow-through?',
+      explanation: 'A Genuine Impulse Swing is a real institutional displacement — price moves strongly in one direction with sustained follow-through and no immediate reversal. This represents actual smart money entering the market. It differs from market protraction because: it is NOT followed by an immediate opposite move, it leaves FVGs and OBs behind it, and it establishes a new reference point for the algorithm.',
+    };
+  }
+}
+
+// ─── 16. Accumulation vs Distribution ────────────────────────────────────────
+function quizAccDist(difficulty = 1) {
+  const isAccumulation = Math.random() > 0.5;
+  const n = 60;
+  const start = 1.0830 + qRand(0, 0.008);
+
+  if (isAccumulation) {
+    // Accumulation: consolidation near open, manipulation drop below open, then expansion UP
+    const candles = qBaseline(n, start, 1, difficulty);
+    const openIdx = 15;
+    const openPrice = candles[openIdx].o;
+    // Consolidation near open
+    for (let i = openIdx; i < openIdx + 4; i++) {
+      const p = candles[i - 1]?.c ?? openPrice;
+      candles[i] = { o: qRp(p), c: qRp(p + qRand(-0.0005, 0.0005)), h: qRp(p + 0.0006), l: qRp(p - 0.0006) };
+    }
+    // Manipulation — drop below open (Judas swing / bottom wick)
+    const manIdx = openIdx + 4;
+    candles[manIdx] = { o: qRp(openPrice), c: qRp(openPrice - 0.002), h: qRp(openPrice + 0.0003), l: qRp(openPrice - 0.0035) };
+    // Distribution — expansion up through old high
+    qImpulse(candles, manIdx + 1, 1, 7, 0.0025);
+    const zone = { startIdx: openIdx, endIdx: manIdx + 7 };
+    return {
+      candles,
+      correctAnswer: 'Accumulation — consolidation → manipulation drop → expansion up',
+      wrongAnswers: ['Distribution — consolidation → manipulation rally → expansion down', 'Consolidation only — no clear bias yet', 'Reversal — downtrend beginning'],
+      question: 'What phase of the market maker cycle is shown?',
+      zone,
+      hint: 'Identify the three phases: consolidation near open, the fake directional move (manipulation), then the real expansion. Which direction is the expansion?',
+      explanation: 'Accumulation (bullish Power 3): Smart money builds long positions at/below the opening price (Accumulation). Price drops below the open via a bottom wick — knocking out longs and trapping breakout sellers (Manipulation / Judas swing). Then price expands UP through old highs, smart money sells longs to breakout buyers above old highs (Distribution at premium). Close near the high.',
+    };
+  } else {
+    // Distribution: consolidation near open, manipulation rally above open, then expansion DOWN
+    const candles = qBaseline(n, start, -1, difficulty);
+    const openIdx = 15;
+    const openPrice = candles[openIdx].o;
+    // Consolidation near open
+    for (let i = openIdx; i < openIdx + 4; i++) {
+      const p = candles[i - 1]?.c ?? openPrice;
+      candles[i] = { o: qRp(p), c: qRp(p + qRand(-0.0005, 0.0005)), h: qRp(p + 0.0006), l: qRp(p - 0.0006) };
+    }
+    // Manipulation — rally above open (Judas swing / top wick)
+    const manIdx = openIdx + 4;
+    candles[manIdx] = { o: qRp(openPrice), c: qRp(openPrice + 0.002), h: qRp(openPrice + 0.0035), l: qRp(openPrice - 0.0003) };
+    // Distribution — expansion down through old low
+    qImpulse(candles, manIdx + 1, -1, 7, 0.0025);
+    const zone = { startIdx: openIdx, endIdx: manIdx + 7 };
+    return {
+      candles,
+      correctAnswer: 'Distribution — consolidation → manipulation rally → expansion down',
+      wrongAnswers: ['Accumulation — consolidation → manipulation drop → expansion up', 'Consolidation only — no clear bias yet', 'Reversal — uptrend beginning'],
+      question: 'What phase of the market maker cycle is shown?',
+      zone,
+      hint: 'Identify the three phases: consolidation near open, the fake directional move (manipulation), then the real expansion. Which direction is the real move?',
+      explanation: 'Distribution (bearish Power 3): Smart money builds short positions at/above the opening price (Accumulation). Price rallies above the open via a top wick — knocking out shorts and trapping breakout buyers (Manipulation / Judas swing). Then price expands DOWN through old lows, smart money covers shorts as sell stops flood the market (Distribution at discount). Close near the low.',
+    };
+  }
+}
+
+// ─── 17. SMT Divergence ───────────────────────────────────────────────────────
+function quizSMTDivergence(difficulty = 1) {
+  // Show two "charts" side by side using candle sequences
+  // Benchmark (like ES/DXY) vs correlated asset (like NQ/EUR)
+  // Quiz: is this SMT divergence or symmetrical (no signal)?
+  const isDivergence = Math.random() > 0.5;
+  const isBullishDivergence = Math.random() > 0.5; // bullish = correlated refuses to make lower low
+  const n = 50;
+  const start = 1.0830 + qRand(0, 0.006);
+
+  if (isDivergence) {
+    if (isBullishDivergence) {
+      // Benchmark makes lower low, correlated asset makes HIGHER low = bullish divergence
+      const candles = qBaseline(n, start, -1, difficulty);
+      // Create two swing lows — benchmark's second lower, correlated's second HIGHER
+      const ll1Idx = 15;
+      candles[ll1Idx].l = qRp(candles[ll1Idx].l - 0.003);
+      qImpulse(candles, ll1Idx + 1, 1, 4, 0.002);
+      const ll2Idx = 26;
+      // Second low is LOWER for benchmark but we mark where correlated would be HIGHER
+      candles[ll2Idx].l = qRp(candles[ll1Idx].l - 0.002); // lower low
+      candles[ll2Idx].o = qRp(candles[ll2Idx].l + 0.001);
+      candles[ll2Idx].c = qRp(candles[ll2Idx].l + 0.002);
+      // Mark with note candle — "correlated refused to make lower low" (higher low shown)
+      qImpulse(candles, ll2Idx + 1, 1, 6, 0.0025);
+      return {
+        candles,
+        correctAnswer: 'Bullish SMT Divergence — benchmark makes lower low, correlated refuses',
+        wrongAnswers: ['Symmetrical — both assets making lower lows, no signal', 'Bearish SMT Divergence — correlated making lower high', 'No divergence — wait for confirmation'],
+        question: 'The benchmark asset made a new lower low. But the correlated asset made a HIGHER low. What is this?',
+        zone: { startIdx: ll1Idx, endIdx: ll2Idx },
+        hint: 'Benchmark = lower low. Correlated = higher low. Do they match or diverge?',
+        explanation: 'Bullish SMT Divergence: The benchmark (e.g. ES, DXY) made a lower low, but the correlated asset (e.g. NQ, EUR/USD) refused — it made a higher low instead. This shows the correlated asset is being accumulated. Smart money is buying the correlated asset even while the benchmark looks weak. Expect the correlated asset to rally strongly. Look for bullish OBs to enter long.',
+      };
+    } else {
+      // Benchmark makes higher high, correlated makes LOWER high = bearish divergence
+      const candles = qBaseline(n, start, 1, difficulty);
+      const hh1Idx = 15;
+      candles[hh1Idx].h = qRp(candles[hh1Idx].h + 0.003);
+      qImpulse(candles, hh1Idx + 1, -1, 4, 0.002);
+      const hh2Idx = 26;
+      candles[hh2Idx].h = qRp(candles[hh1Idx].h + 0.002); // higher high for benchmark
+      candles[hh2Idx].o = qRp(candles[hh2Idx].h - 0.002);
+      candles[hh2Idx].c = qRp(candles[hh2Idx].h - 0.001);
+      qImpulse(candles, hh2Idx + 1, -1, 6, 0.0025);
+      return {
+        candles,
+        correctAnswer: 'Bearish SMT Divergence — benchmark makes higher high, correlated fails',
+        wrongAnswers: ['Symmetrical — both assets making higher highs, trend continues', 'Bullish SMT Divergence — correlated making higher low', 'No divergence — wait for confirmation'],
+        question: 'The benchmark asset made a higher high. But the correlated asset made a LOWER high. What is this?',
+        zone: { startIdx: hh1Idx, endIdx: hh2Idx },
+        hint: 'Benchmark = higher high. Correlated = lower high. Does the correlated asset confirm the move?',
+        explanation: 'Bearish SMT Divergence: The benchmark (e.g. ES) made a higher high, but the correlated asset (e.g. NQ) failed — it made a lower high. This shows the correlated asset is being distributed. Smart money is selling even while the benchmark appears strong. The correlated asset\'s higher high was just a buy stop raid. Expect a drop. Look for bearish OBs to sell.',
+      };
+    }
+  } else {
+    // Symmetrical — both assets making same swing highs/lows = no divergence = trend continues
+    const isUp = Math.random() > 0.5;
+    const candles = qBaseline(n, start, isUp ? 1 : -1, difficulty);
+    const idx1 = 15, idx2 = 27;
+    if (isUp) {
+      candles[idx1].h = qRp(candles[idx1].h + 0.002);
+      candles[idx2].h = qRp(candles[idx1].h + 0.003); // both making higher highs
+      qImpulse(candles, idx2 + 1, 1, 5, 0.002);
+    } else {
+      candles[idx1].l = qRp(candles[idx1].l - 0.002);
+      candles[idx2].l = qRp(candles[idx1].l - 0.003); // both making lower lows
+      qImpulse(candles, idx2 + 1, -1, 5, 0.002);
+    }
+    return {
+      candles,
+      correctAnswer: 'Symmetrical — both assets confirming each other, trend continues',
+      wrongAnswers: ['Bullish SMT Divergence — accumulation signal', 'Bearish SMT Divergence — distribution signal', 'Mixed signal — wait for more data'],
+      question: 'Both the benchmark and correlated asset made the same type of swing. What does this mean?',
+      zone: { startIdx: idx1, endIdx: idx2 },
+      hint: 'When benchmark and correlated move in sync (both higher highs or both lower lows) what does that tell you about the trend?',
+      explanation: 'Symmetrical Movement: When the benchmark and the correlated asset both make the same type of swing (both higher highs, or both lower lows) — they are CONFIRMING each other. No divergence = trend continuation. In this condition, do NOT look for reversals. Instead look for internal range pullbacks (OTE entries) to trade WITH the confirmed trend.',
+    };
+  }
 }
 
 // ─── Public API ───────────────────────────────────────────────────────────────
